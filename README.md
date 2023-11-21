@@ -15,9 +15,14 @@ A user with a bank account can deposit, withdraw and transfer to another user.
 <h2>Dependencies</h2>
 Project was created using the Intellij IDEA community IDE, using the Maven automation tool, set up with a local MariaDB database.
 Other dependencies are noted in the pom file.
-Backend is Spring Boot.
-Frontend...
+<p>Backend is Spring Boot.</p>
+<p>Frontend...</p>
 
 <h2>To start project</h2>
-Set up database as noted in application properties.
-Run using java 21 SDK.
+<p>Set up database as noted in application properties.</p>
+<p>Run using java 21 SDK.</p>
+<p>Worth a note (Windows users) to make sure that JAVA_HOME environment variable is not outdated</p>
+to build project:
+```
+mvn wrapper:wrapper
+```

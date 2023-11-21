@@ -13,6 +13,8 @@ import com.example.Bank.UsedKey.UsedKey;
 import com.example.Bank.UsedKey.UsedKeyRepository;
 import jakarta.validation.Valid;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1")
 public class BankAccountController {
+    private static final Logger logger = LogManager.getLogger(BankAccountController.class);
     @Autowired
     private BankAccountRepository bankAccountRepository;
 
@@ -45,6 +48,7 @@ public class BankAccountController {
             throws ResourceNotFoundException {
         BankAccount bankAccount = bankAccountRepository.findById(bankAccountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account not found for this id :: " + bankAccountId));
+        logger.info("POST /bank_accounts" + bankAccountId + " " + HttpStatus.OK);
         return ResponseEntity.ok().body(bankAccount);
     }
 
@@ -59,6 +63,7 @@ public class BankAccountController {
         Double clientProvidedBalance = bankAccount.getBalance();
         bankAccount.setBalance(clientProvidedBalance);
 
+        logger.info("POST /bank_accounts" + HttpStatus.OK);
         return bankAccountRepository.save(bankAccount);
     }
 
@@ -71,19 +76,24 @@ public class BankAccountController {
         bankAccount.setPin(bankAccountDetails.getPin());
         bankAccount.setBalance(bankAccountDetails.getBalance());
         final BankAccount updatedbankAccount = bankAccountRepository.save(bankAccount);
+        logger.info("PUT /bank_accounts/"+ bankAccountId + " " + HttpStatus.OK);
         return ResponseEntity.ok(updatedbankAccount);
     }
 
     @DeleteMapping("/bank_accounts/{id}")
-    public Map < String, Boolean > deleteBankAccount(@PathVariable(value = "id") String bankAccountId)
+    public ResponseEntity<?> deleteBankAccount(@PathVariable(value = "id") String bankAccountId)
             throws ResourceNotFoundException {
         BankAccount bankAccount = bankAccountRepository.findById(bankAccountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account not found for this id :: " + bankAccountId));
-
+        UsedKey usedKey = usedKeyRepository.findById(bankAccountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Used key not found for this id :: " + bankAccountId));
         bankAccountRepository.delete(bankAccount);
+        usedKeyRepository.delete(usedKey);
         Map < String, Boolean > response = new HashMap < > ();
         response.put("deleted", Boolean.TRUE);
-        return response;
+
+        logger.info("DELETE /bank_accounts/"+ bankAccountId + " " + HttpStatus.OK);
+        return ResponseEntity.ok().body(Map.of("success", true));
     }
     // generate key to be recognized for
     private String generateAccountKey() {
@@ -123,6 +133,7 @@ public class BankAccountController {
     public ResponseEntity<?> increaseBalance(
             @PathVariable String id,
             @RequestBody Map<String, String> requestBody) {
+        String loggerString = "POST /deposit/" + id + " ";
         try {
             if (id == null || requestBody == null || !requestBody.containsKey("amount")) {
                 throw new ResourceNotFoundException(id + requestBody);
@@ -134,12 +145,16 @@ public class BankAccountController {
             }
 
             BankAccount bankAccount = bankAccountService.increaseBalance(id, amount);
+            logger.info(""+ HttpStatus.OK);
             return ResponseEntity.ok().body(Map.of("success", true, "data", bankAccount));
         } catch (WithdrawalFailedException e) {
+            logger.error(loggerString + HttpStatus.INTERNAL_SERVER_ERROR);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("success", false, "error", e.getMessage()));
         } catch (ResourceNotFoundException e) {
+            logger.error(loggerString + HttpStatus.NOT_FOUND);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "error", e.getMessage()));
         } catch (NumberFormatException e){
+            logger.error(loggerString + HttpStatus.BAD_REQUEST);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("success", false, "error", e.getMessage()));
         }
     }
@@ -148,6 +163,7 @@ public class BankAccountController {
     public ResponseEntity<?> decreaseBalance(
             @PathVariable String id,
             @RequestBody Map<String, String> requestBody) {
+        String loggerString = "POST /bank_accounts/withdraw/" + id + " ";
         try {
             if (id == null || requestBody == null || !requestBody.containsKey("amount")) {
                 throw new ResourceNotFoundException("Input data missing");
@@ -158,14 +174,19 @@ public class BankAccountController {
                 throw new InsufficientBalanceException("Amount can not be negative");
             }
             BankAccount bankAccount = bankAccountService.decreaseBalance(id, amount);
+            logger.info(loggerString + HttpStatus.OK);
             return ResponseEntity.ok().body(Map.of("success", true, "data", bankAccount));
         } catch (InsufficientBalanceException e) {
+            logger.error(loggerString + HttpStatus.FORBIDDEN);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("success", false, "error", e.getMessage()));
         } catch (WithdrawalFailedException e) {
+            logger.error(loggerString + HttpStatus.INTERNAL_SERVER_ERROR);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("success", false, "error", e.getMessage()));
         } catch (ResourceNotFoundException e) {
+            logger.error(loggerString + HttpStatus.NOT_FOUND);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "error", e.getMessage()));
         } catch (NumberFormatException e){
+            logger.error(loggerString + HttpStatus.BAD_REQUEST);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("success", false, "error", e.getMessage()));
         }
     }
@@ -174,6 +195,7 @@ public class BankAccountController {
     public ResponseEntity<?> transferBalance(
             @PathVariable String id,
             @RequestBody Map<String, String> requestBody) {
+        String loggerString = "POST /bank_accounts/transfer/" + id + " ";
         try {
             if (id == null || requestBody == null || !requestBody.containsKey("amount") || !requestBody.containsKey("receiver")) {
                 throw new ResourceNotFoundException("Input data missing");
@@ -185,14 +207,19 @@ public class BankAccountController {
                 throw new InsufficientBalanceException("Amount can not be negative");
             }
             Map<String, BankAccount> bankAccountMap = bankAccountService.transferBalance(id, receiverId, amount);
+            logger.info(loggerString + HttpStatus.OK);
             return ResponseEntity.ok().body(Map.of("success", true, "sender", bankAccountMap.get("senderAccount"), "receiver", bankAccountMap.get("receiverAccount")));
         } catch (InsufficientBalanceException e) {
+            logger.error(loggerString + HttpStatus.FORBIDDEN);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("success", false, "error", e.getMessage()));
         } catch (WithdrawalFailedException e) {
+            logger.error(loggerString + HttpStatus.INTERNAL_SERVER_ERROR);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("success", false, "error", e.getMessage()));
         } catch (ResourceNotFoundException e) {
+            logger.error(loggerString + HttpStatus.NOT_FOUND);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "error", e.getMessage()));
         } catch (NumberFormatException e){
+            logger.error(loggerString + HttpStatus.BAD_REQUEST);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("success", false, "error", e.getMessage()));
         }
     }

@@ -3,6 +3,7 @@ package com.example.Bank.BankAccount;
 import com.example.Bank.Error.InsufficientBalanceException;
 import com.example.Bank.Error.ResourceNotFoundException;
 import com.example.Bank.Error.WithdrawalFailedException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class BankAccountService {
     private final BankAccountRepository bankAccountRepository;
 
+    @Autowired
     public BankAccountService(BankAccountRepository bankAccountRepository) {
         this.bankAccountRepository = bankAccountRepository;
     }

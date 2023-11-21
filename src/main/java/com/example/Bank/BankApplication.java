@@ -2,14 +2,18 @@ package com.example.Bank;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.ApplicationContext;
+
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.Bank.BankAccount", "com.example.Bank.UsedKey", "com.example.Bank.Error"})
 public class BankApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(BankApplication.class, args);
+
+		ApplicationContext applicationContext = SpringApplication.run(BankApplication.class, args);
+//		for (String name : applicationContext.getBeanDefinitionNames()) {
+//			System.out.println(name);
+//		}
 	}
 
 }
